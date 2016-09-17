@@ -14,6 +14,7 @@ It works by subscribing to DBus notifications from Systemd. This means that ther
 * `mail` gem (if email notifier is used)
 * `slack-notifier` gem > 1.0 (if slack notifier is used)
 * `hipchat` (if hipchat notifier is used)
+* `pagerduty` (if pagerduty notifier is used)
 
 ## Installation
 
@@ -51,10 +52,14 @@ notifiers:
     token: bigsecrettokenhere
     room: myroom
     username: doge
+  pagerduty:
+    api_key: PD_GENERIC_API_KEY
+    # 'environ' is optional, if not set, will take the 'no_env' as a value.
+    environ: ENVIRONMENT_NAME
 units:
-- unicorn.service
-- nginx.service
-- sidekiq.service
+  - unicorn.service
+  - nginx.service
+  - sidekiq.service
 ```
 
 Save that somewhere appropriate (e.g. `/etc/systemd_mon.yml`), then start the command line tool with:
