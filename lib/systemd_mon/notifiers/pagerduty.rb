@@ -24,39 +24,29 @@ module SystemdMon::Notifiers
     end
 
     def notify!(notification)
-      case notification.type
-      when :alert
-        log 'PD handling alert'
-        log "status_text: #{notification.unit.state_change.status_text}, last:#{notification.unit.state_change.last}"
-        handle_notification_alert(notification)
+      unit = notification.unit
+      state_change = unit.state_change
+      debug "PD handling #{notification.type}"
+      debug "status_text: #{notification.unit.state_change.status_text}, last:#{notification.unit.state_change.last}"
+      hostname = notification.hostname
+      incident_key = "systemd/#{hostname}/#{unit.name}"
+      if state_change.fail? || state_change.still_fail?
+        incident_desc = "#{environ.capitalize} systemd unit #{unit.name} failed on #{hostname}"
+        details = {
+          Hostname: hostname,
+          Unit: unit.name,
+          Changes: state_change.to_s
+        }
+        debug "Triggering incident:\n Desc: #{incident_desc}\n Key: #{incident_key}\n Details: #{details}"
+        client.trigger(incident_desc, incident_key: incident_key, details: details)
       else
-        log "PD handling #{notification.type}"
+        debug "Resolving incident:\n #{incident_key}"
+        incident = client.get_incident(incident_key)
+        incident.resolve()
       end
-
     end
 
     protected
       attr_accessor :client, :environ
-
-      def handle_notification_alert(notification)
-        unit = notification.unit
-        state_change = unit.state_change
-        hostname = notification.hostname
-        incident_key = "systemd/#{hostname}/#{unit.name}"
-        if state_change.fail?
-          incident_desc = "#{environ.capitalize} systemd unit #{unit.name} failed on #{hostname}"
-          details = {
-           Hostname: hostname,
-           Unit: unit.name,
-           Changes: state_change.to_s
-          }
-          debug "Triggering incident:\n Desc: #{incident_desc}\n Key: #{incident_key}\n Details: #{details}"
-          client.trigger(incident_desc, incident_key: incident_key, details: details)
-        else
-          debug "Resolving incident:\n #{incident_key}"
-          incident = client.get_incident(incident_key)
-          incident.resolve()
-        end
-      end
   end
 end
